@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { MapContainer, TileLayer, GeoJSON, ScaleControl, useMap, Tooltip } from "react-leaflet";
 import * as L from "leaflet";
+import { GeoJsonObject } from 'geojson';
 import * as topojson from "topojson-client";
 import { getColor, getCenterOfGeoJson, layersUtils } from './mapUtils'
 import "leaflet/dist/leaflet.css";
@@ -82,21 +83,21 @@ type LandkreisGeoJSON = {
 type BezirkGeoJSON = {
     type: "FeatureCollection";
     features: Array<{
-        type: string;
+        type: "Feature";
         properties: BezirkFeatureProperties;
         geometry: {
-            type: string;
+            type: "MultiPolygon";
             coordinates: number[][][][];
         };
     }>;
 }
 
 type OrtsteileGeoJSON = {
-    type: string;
+    type: "FeatureCollection";
     features: Array<{
-        type: string;
+        type: "Feature";
         geometry: {
-            type: string;
+            type: "MultiPolygon";
             coordinates: number[][][][];
         };
         properties: OrtsteileFeatureProperties;
@@ -114,8 +115,9 @@ function geoJSONStyle(feature) {
 
 const GeoMap = () => {
     const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
-    const [currentView, setCurrentView] = useState<ViewLevel>(ViewLevel.BUNDESLAND);
+    const [currentView, setCurrentView] = useState<ViewLevel.BUNDESLAND | ViewLevel.LANDKREIS | ViewLevel.BEZIRK | ViewLevel.ORTSTEIL>(ViewLevel.BUNDESLAND);
     const [history, setHistory] = useState<Array<{level: ViewLevel, name: string}>>([]);
+    const [selectedOrtsteil, setSelectedOrtsteil] = useState<string | null>(null);
 
     // Get the appropriate GeoJSON data based on the current view
     const geoJson = (() => {
@@ -141,14 +143,17 @@ const GeoMap = () => {
                     const allOrtsteile = ortsteile as OrtsteileGeoJSON;
                     // Extract BEZNAME from Description HTML for filtering
                     const processedFeatures = allOrtsteile.features.filter(feature => {
+                        if (selectedOrtsteil) {
+                            return feature.properties.Name === selectedOrtsteil;
+                        }
                         const match = feature.properties.Description.match(/BEZNAME<\/td>\s*<td>([^<]+)<\/td>/);
                         return match && match[1] === selectedRegion;
                     });
                     
-                    return {
-                        type: "FeatureCollection" as const,
+                    return processedFeatures.length > 0 ? {
+                        type: "FeatureCollection",
                         features: processedFeatures
-                    };
+                    } : null;
                 }
                 return null;
             default:
@@ -197,6 +202,13 @@ const GeoMap = () => {
                         case ViewLevel.BEZIRK:
                             nextLevel = ViewLevel.ORTSTEIL;
                             break;
+                        case ViewLevel.LANDKREIS:
+                            nextLevel = currentView;
+                            break;
+                        case ViewLevel.ORTSTEIL:
+                            nextLevel = currentView; // Stay at ORTSTEIL level
+                            setSelectedOrtsteil(name); // Set the selected ortsteil
+                            return; // Don't update history when clicking on ortsteile
                         default:
                             nextLevel = currentView;
                     }
@@ -205,9 +217,12 @@ const GeoMap = () => {
                     setHistory([...history, { level: currentView, name }]);
                     
                     // Extract bezirk name for logging if it's an ortsteil
-                    const bezirkMatch = currentView === ViewLevel.ORTSTEIL ? 
-                        properties.Description.match(/BEZNAME<\/td>\s*<td>([^<]+)<\/td>/) : null;
-                    console.log("Clicked:", name, bezirkMatch ? `(${bezirkMatch[1]})` : '');
+                    if ('Description' in properties) {
+                        const bezirkMatch = properties.Description.match(/BEZNAME<\/td>\s*<td>([^<]+)<\/td>/);
+                        console.log("Clicked:", name, bezirkMatch ? `(${bezirkMatch[1]})` : '');
+                    } else {
+                        console.log("Clicked:", name);
+                    }
                     layerUtils.zoomToFeature(e);
                 }
             });
@@ -287,6 +302,7 @@ const GeoMap = () => {
             setCurrentView(previousState ? previousState.level : ViewLevel.BUNDESLAND);
             setSelectedRegion(previousState ? previousState.name : null);
             setHistory(history.slice(0, -1));
+            setSelectedOrtsteil(null); // Reset selected ortsteil when going back
         }
     };
 
@@ -295,6 +311,7 @@ const GeoMap = () => {
         setCurrentView(ViewLevel.BUNDESLAND);
         setSelectedRegion(null);
         setHistory([]);
+        setSelectedOrtsteil(null); // Reset selected ortsteil when going back to start
     };
 
     return (
@@ -308,7 +325,7 @@ const GeoMap = () => {
             >
                 {geoJson && (
                     <GeoJSON
-                        data={geoJson}
+                        data={geoJson as GeoJsonObject}
                         key={`${currentView}-${selectedRegion || ''}`}
                         style={geoJSONStyle}
                         ref={geoJsonRef}
