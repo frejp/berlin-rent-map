@@ -4,9 +4,104 @@ import * as L from "leaflet";
 import * as topojson from "topojson-client";
 import { getColor, getCenterOfGeoJson, layersUtils } from './mapUtils'
 import "leaflet/dist/leaflet.css";
-import germany from "./germany.json";
+import bundes from "./bundes.json";
+import landkreis from "./landskreis.json";
+import berlinBezirke from "./berlin_bezirke.json";
+import ortsteile from "./ortsteile.json";
 
-const COUNTRY_VIEW_ID = "states";
+// View levels for the map
+enum ViewLevel {
+    BUNDESLAND = 'bundesland',
+    LANDKREIS = 'landkreis',
+    BEZIRK = 'bezirk',
+    ORTSTEIL = 'ortsteil'
+}
+
+// Type for the GeoJSON Feature properties
+interface BundesFeatureProperties {
+    geo_point_2d: { lon: number; lat: number };
+    year: string;
+    lan_code: string[];
+    lan_name: string[];
+    lan_area_code: string;
+    lan_type: string;
+    lan_name_short: null;
+}
+
+interface LandkreisFeatureProperties {
+    geo_point_2d: { lon: number; lat: number };
+    year: string;
+    lan_code: string[];
+    lan_name: string[];
+    krs_code: string[];
+    krs_name: string[];
+    krs_area_code: string;
+    krs_type: string;
+    krs_name_short: string[];
+    bundesland: string;
+}
+
+interface BezirkFeatureProperties {
+    name: string;
+    description: string;
+    cartodb_id: number;
+    created_at: string;
+    updated_at: string;
+}
+
+interface OrtsteileFeatureProperties {
+    Name: string;
+    Description: string;
+}
+
+// Type for the GeoJSON structures
+type BundesGeoJSON = {
+    type: "FeatureCollection";
+    features: Array<{
+        type: "Feature";
+        geometry: {
+            type: "MultiPolygon";
+            coordinates: number[][][][];
+        };
+        properties: BundesFeatureProperties;
+    }>;
+}
+
+type LandkreisGeoJSON = {
+    type: "FeatureCollection";
+    features: Array<{
+        type: "Feature";
+        geometry: {
+            type: "MultiPolygon" | "Polygon";
+            coordinates: number[][][] | number[][][][];
+        };
+        properties: LandkreisFeatureProperties;
+    }>;
+}
+
+type BezirkGeoJSON = {
+    type: "FeatureCollection";
+    features: Array<{
+        type: string;
+        properties: BezirkFeatureProperties;
+        geometry: {
+            type: string;
+            coordinates: number[][][][];
+        };
+    }>;
+}
+
+type OrtsteileGeoJSON = {
+    type: string;
+    features: Array<{
+        type: string;
+        geometry: {
+            type: string;
+            coordinates: number[][][][];
+        };
+        properties: OrtsteileFeatureProperties;
+    }>;
+}
 
 function geoJSONStyle(feature) {
     return {
@@ -18,24 +113,46 @@ function geoJSONStyle(feature) {
 }
 
 const GeoMap = () => {
-    const [selectedState, setSelectedState] = useState<string | null>(null);
-    const [currentView, setCurrentView] = useState<'states' | 'districts'>('states');
+    const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
+    const [currentView, setCurrentView] = useState<ViewLevel>(ViewLevel.BUNDESLAND);
+    const [history, setHistory] = useState<Array<{level: ViewLevel, name: string}>>([]);
 
     // Get the appropriate GeoJSON data based on the current view
     const geoJson = (() => {
-        if (currentView === 'states') {
-            // @ts-ignore
-            return topojson.feature(germany, germany.objects[COUNTRY_VIEW_ID]);
-        } else {
-            // For districts view, use the counties object filtered by state
-            // @ts-ignore
-            const allCounties = topojson.feature(germany, germany.objects.counties);
-            return {
-                type: "FeatureCollection" as const,
-                features: (allCounties as any).features.filter(
-                    (feature: any) => feature.properties.state === selectedState
-                )
-            };
+        switch (currentView) {
+            case ViewLevel.BUNDESLAND:
+                return bundes as BundesGeoJSON;
+            case ViewLevel.LANDKREIS:
+                const allLandkreise = landkreis as LandkreisGeoJSON;
+                const filteredFeatures = allLandkreise.features.filter(
+                    feature => feature.properties.lan_name?.[0] === selectedRegion
+                );
+                return filteredFeatures.length > 0 ? {
+                    type: "FeatureCollection" as const,
+                    features: filteredFeatures
+                } : null;
+            case ViewLevel.BEZIRK:
+                if (selectedRegion === "Berlin") {
+                    return berlinBezirke as BezirkGeoJSON;
+                }
+                return null;
+            case ViewLevel.ORTSTEIL:
+                if (history[history.length - 2]?.name === "Berlin") {
+                    const allOrtsteile = ortsteile as OrtsteileGeoJSON;
+                    // Extract BEZNAME from Description HTML for filtering
+                    const processedFeatures = allOrtsteile.features.filter(feature => {
+                        const match = feature.properties.Description.match(/BEZNAME<\/td>\s*<td>([^<]+)<\/td>/);
+                        return match && match[1] === selectedRegion;
+                    });
+                    
+                    return {
+                        type: "FeatureCollection" as const,
+                        features: processedFeatures
+                    };
+                }
+                return null;
+            default:
+                return null;
         }
     })();
 
@@ -45,7 +162,6 @@ const GeoMap = () => {
             layer.on({
                 mouseover: (e) => {
                     layerUtils.highlightOnClick(e);
-                    // Update tooltip position based on mouse position
                     const tooltip = layer.getTooltip();
                     if (tooltip && layer instanceof L.Polygon) {
                         const bounds = layer.getBounds();
@@ -56,29 +172,68 @@ const GeoMap = () => {
                 mouseout: layerUtils.resetHighlight,
                 click: (e) => {
                     const properties = feature.properties;
-                    const name = currentView === 'states' ? properties.name : properties.state;
-                    setSelectedState(name);
+                    let name;
+                    switch (currentView) {
+                        case ViewLevel.LANDKREIS:
+                            name = properties.krs_name?.[0];
+                            break;
+                        case ViewLevel.BEZIRK:
+                            name = properties.name;
+                            break;
+                        case ViewLevel.ORTSTEIL:
+                            name = properties.Name;
+                            break;
+                        default:
+                            name = properties.lan_name?.[0];
+                    }
+                    setSelectedRegion(name);
                     
-                    // Switch to districts view when clicking a state
-                    if (currentView === 'states') {
-                        setCurrentView('districts');
+                    // Update view level and history
+                    let nextLevel: ViewLevel;
+                    switch (currentView) {
+                        case ViewLevel.BUNDESLAND:
+                            nextLevel = name === "Berlin" ? ViewLevel.BEZIRK : ViewLevel.LANDKREIS;
+                            break;
+                        case ViewLevel.BEZIRK:
+                            nextLevel = ViewLevel.ORTSTEIL;
+                            break;
+                        default:
+                            nextLevel = currentView;
                     }
                     
-                    console.log("Clicked:", name);
+                    setCurrentView(nextLevel);
+                    setHistory([...history, { level: currentView, name }]);
+                    
+                    // Extract bezirk name for logging if it's an ortsteil
+                    const bezirkMatch = currentView === ViewLevel.ORTSTEIL ? 
+                        properties.Description.match(/BEZNAME<\/td>\s*<td>([^<]+)<\/td>/) : null;
+                    console.log("Clicked:", name, bezirkMatch ? `(${bezirkMatch[1]})` : '');
                     layerUtils.zoomToFeature(e);
                 }
             });
             
             // Add a tooltip that stays open on hover
-            const tooltipContent = currentView === 'districts' 
-                ? `${feature.properties.name} (${feature.properties.districtType})`
-                : feature.properties.name;
+            let tooltipContent;
+            switch (currentView) {
+                case ViewLevel.LANDKREIS:
+                    tooltipContent = feature.properties.krs_name?.[0];
+                    break;
+                case ViewLevel.BEZIRK:
+                    tooltipContent = feature.properties.name;
+                    break;
+                case ViewLevel.ORTSTEIL:
+                    const bezirkMatch = feature.properties.Description.match(/BEZNAME<\/td>\s*<td>([^<]+)<\/td>/);
+                    tooltipContent = `${feature.properties.Name} (${bezirkMatch ? bezirkMatch[1] : 'Unknown'})`;
+                    break;
+                default:
+                    tooltipContent = feature.properties.lan_name?.[0];
+            }
 
             layer.bindTooltip(tooltipContent, {
                 permanent: false,
                 direction: 'auto',
                 offset: [15, 0],
-                className: currentView === 'districts' ? 'district-tooltip' : 'state-tooltip',
+                className: `${currentView}-tooltip`,
                 sticky: true
             });
         }
@@ -95,12 +250,11 @@ const GeoMap = () => {
         }
     }, [geoJson]);
 
-    // Add CSS for the tooltip
+    // Add CSS for the tooltips
     useEffect(() => {
-        // Add custom CSS for the tooltip
         const style = document.createElement('style');
         style.innerHTML = `
-            .district-tooltip, .state-tooltip {
+            .bundesland-tooltip, .landkreis-tooltip, .bezirk-tooltip, .ortsteil-tooltip {
                 background: rgba(255, 255, 255, 0.9);
                 border: none;
                 border-radius: 4px;
@@ -110,10 +264,11 @@ const GeoMap = () => {
                 font-weight: 500;
                 pointer-events: none;
             }
-            .district-tooltip:before, .state-tooltip:before {
+            .bundesland-tooltip:before, .landkreis-tooltip:before, 
+            .bezirk-tooltip:before, .ortsteil-tooltip:before {
                 display: none;
             }
-            .state-tooltip {
+            .bundesland-tooltip {
                 font-size: 16px;
             }
         `;
@@ -125,10 +280,21 @@ const GeoMap = () => {
 
     const mapCenter: [number, number] = getCenterOfGeoJson(geoJson);
 
-    // Function to go back to state view
-    const handleBackToStates = () => {
-        setCurrentView('states');
-        setSelectedState(null);
+    // Function to go back one level
+    const handleBack = () => {
+        if (history.length > 0) {
+            const previousState = history[history.length - 2];
+            setCurrentView(previousState ? previousState.level : ViewLevel.BUNDESLAND);
+            setSelectedRegion(previousState ? previousState.name : null);
+            setHistory(history.slice(0, -1));
+        }
+    };
+
+    // Function to go back to bundesland view
+    const handleBackToStart = () => {
+        setCurrentView(ViewLevel.BUNDESLAND);
+        setSelectedRegion(null);
+        setHistory([]);
     };
 
     return (
@@ -140,13 +306,15 @@ const GeoMap = () => {
                 style={{ height: "100vh", width: "100%" }} 
                 ref={mapRef}
             >
-                <GeoJSON
-                    data={geoJson}
-                    key={currentView + (selectedState || '')}
-                    style={geoJSONStyle}
-                    ref={geoJsonRef}
-                    onEachFeature={onEachFeature}
-                />
+                {geoJson && (
+                    <GeoJSON
+                        data={geoJson}
+                        key={`${currentView}-${selectedRegion || ''}`}
+                        style={geoJSONStyle}
+                        ref={geoJsonRef}
+                        onEachFeature={onEachFeature}
+                    />
+                )}
                 <ScaleControl />
             </MapContainer>
             <div style={{
@@ -157,28 +325,42 @@ const GeoMap = () => {
                 flexDirection: 'column',
                 gap: '10px'
             }}>
-                {currentView === 'districts' && (
-                    <button 
-                        onClick={handleBackToStates}
-                        style={{
-                            padding: '8px 16px',
-                            backgroundColor: '#fff',
-                            border: '1px solid #ccc',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        Back to States
-                    </button>
+                {currentView !== ViewLevel.BUNDESLAND && (
+                    <>
+                        <button 
+                            onClick={handleBack}
+                            style={{
+                                padding: '8px 16px',
+                                backgroundColor: '#fff',
+                                border: '1px solid #ccc',
+                                borderRadius: '4px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Back
+                        </button>
+                        <button 
+                            onClick={handleBackToStart}
+                            style={{
+                                padding: '8px 16px',
+                                backgroundColor: '#fff',
+                                border: '1px solid #ccc',
+                                borderRadius: '4px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Back to States
+                        </button>
+                    </>
                 )}
-                {selectedState && (
+                {selectedRegion && (
                     <div style={{
                         background: 'white',
                         padding: '10px',
                         borderRadius: '4px',
                         boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
                     }}>
-                        {currentView === 'districts' ? `Districts of ${selectedState}` : `Selected: ${selectedState}`}
+                        {`${currentView.charAt(0).toUpperCase() + currentView.slice(1)}: ${selectedRegion}`}
                     </div>
                 )}
             </div>

@@ -16,8 +16,24 @@ export function getColor(d) {
 }
 
 export function getCenterOfGeoJson(geoJson): [number, number] {
-    const coords = center(geoJson).geometry.coordinates;
-    return [coords[1], coords[0]]; // Convert to [lat, lng] format
+    if (!geoJson) {
+        return [51.1657, 10.4515]; // Default center of Germany
+    }
+
+    try {
+        const centerPoint = center(geoJson);
+        if (centerPoint && centerPoint.geometry && centerPoint.geometry.coordinates) {
+            const coords = centerPoint.geometry.coordinates;
+            if (Array.isArray(coords) && coords.length === 2 && 
+                typeof coords[0] === 'number' && typeof coords[1] === 'number') {
+                return [coords[1], coords[0]]; // Convert to [lat, lng] format
+            }
+        }
+        return [51.1657, 10.4515]; // Fallback to center of Germany
+    } catch (error) {
+        console.error('Error calculating center:', error);
+        return [51.1657, 10.4515]; // Fallback to center of Germany
+    }
 }
 
 export function layersUtils(geoJsonRef, mapRef) {
