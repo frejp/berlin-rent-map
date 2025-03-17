@@ -453,6 +453,25 @@ const GeoMap = () => {
         }
     }, [featureToZoom]);
 
+    const addToHistory = (level: ViewLevel, name: string) => {
+        setHistory(prevHistory => {
+            // Prevent adding duplicate entries
+            if (prevHistory.length > 0 && 
+                prevHistory[prevHistory.length - 1].level === level && 
+                prevHistory[prevHistory.length - 1].name === name) {
+                return prevHistory;
+            }
+            
+            // If we're at a new top-level (Bundesland), reset the history
+            if (level === ViewLevel.BUNDESLAND) {
+                return [{ level, name }];
+            }
+            
+            // Otherwise, append to history
+            return [...prevHistory, { level, name }];
+        });
+    };
+
     function onEachFeature(feature: any, layer: L.Layer) {
         let layerUtils = layersUtils(geoJsonRef, mapRef);
         if (layer instanceof L.Path) {
@@ -486,24 +505,23 @@ const GeoMap = () => {
                     
                     // Update view level and history for other levels
                     let nextLevel: ViewLevel;
-                    let nextHistory = [...history];
                     
                     switch (currentView) {
                         case ViewLevel.BUNDESLAND:
                             nextLevel = name === "Berlin" || name === "Hamburg" ? ViewLevel.BEZIRK : ViewLevel.LANDKREIS;
-                            nextHistory = [...history, { level: currentView, name }];
                             setSelectedRegion(name);
+                            addToHistory(currentView, name);
                             break;
                         case ViewLevel.BEZIRK:
                             nextLevel = ViewLevel.ORTSTEIL;
-                            nextHistory = [...history, { level: currentView, name }];
                             setSelectedRegion(name);
+                            addToHistory(currentView, name);
                             break;
                         case ViewLevel.LANDKREIS:
                             if (name === "Berlin" || name === "Hamburg") {
                                 nextLevel = ViewLevel.BEZIRK;
-                                nextHistory = [...history, { level: currentView, name }];
                                 setSelectedRegion(name);
+                                addToHistory(currentView, name);
                             } else {
                                 nextLevel = currentView;
                                 setSelectedLandkreis(name);
@@ -514,12 +532,68 @@ const GeoMap = () => {
                     }
                     
                     setCurrentView(nextLevel);
-                    setHistory(nextHistory);
                     setFeatureToZoom(getBoundsFromFeature(feature));
                 }
             });
         }
     }
+
+    const handleBack = () => {
+        if (history.length > 1) {
+            const newHistory = [...history];
+            newHistory.pop(); // Remove current state
+            const previousItem = newHistory[newHistory.length - 1];
+            
+            // Reset states based on the previous history item
+            setHistory(newHistory);
+            setCurrentView(previousItem.level);
+            
+            // Reset region and ortsteil based on the previous level
+            switch (previousItem.level) {
+                case ViewLevel.BUNDESLAND:
+                    setSelectedRegion(null);
+                    setSelectedOrtsteil(null);
+                    setSelectedLandkreis(null);
+                    break;
+                case ViewLevel.LANDKREIS:
+                    setSelectedRegion(previousItem.name);
+                    setSelectedOrtsteil(null);
+                    break;
+                case ViewLevel.BEZIRK:
+                    setSelectedRegion(previousItem.name);
+                    setSelectedOrtsteil(null);
+                    break;
+                case ViewLevel.ORTSTEIL:
+                    setSelectedOrtsteil(null);
+                    break;
+            }
+            
+            // If we can find the feature for the previous item, zoom to it
+            if (geoJsonRef.current) {
+                let targetFeature = null;
+                geoJsonRef.current.eachLayer((layer: any) => {
+                    if (layer.feature) {
+                        const properties = layer.feature.properties;
+                        const name = properties.name || properties.bezirk_name || properties.krs_name?.[0] || properties.lan_name?.[0];
+                        if (name === previousItem.name) {
+                            targetFeature = layer.feature;
+                        }
+                    }
+                });
+                
+                if (targetFeature) {
+                    setFeatureToZoom(getBoundsFromFeature(targetFeature));
+                } else if (previousItem.level === ViewLevel.BUNDESLAND) {
+                    // If back to Bundesland, reset to Germany view
+                    const germanBounds = L.latLngBounds(
+                        L.latLng(47.27, 5.87),  // Southwest corner
+                        L.latLng(55.06, 15.04)  // Northeast corner
+                    );
+                    setFeatureToZoom(germanBounds);
+                }
+            }
+        }
+    };
 
     const mapRef = useRef<L.Map | null>(null);
     const geoJsonRef = useRef<L.GeoJSON | null>(null);
@@ -545,24 +619,42 @@ const GeoMap = () => {
     const mapCenter: [number, number] = getCenterOfGeoJson(geoJson);
 
     // Function to go back one level
-    const handleBack = () => {
-        if (history.length > 0) {
-            const previousState = history[history.length - 1];
-            setCurrentView(previousState.level);
-            setSelectedRegion(previousState.name);
-            setHistory(history.slice(0, -1));
-            setSelectedOrtsteil(null);
-            setSelectedLandkreis(null);
-        }
-    };
-
-    // Function to go back to bundesland view
     const handleBackToStart = () => {
         setCurrentView(ViewLevel.BUNDESLAND);
         setSelectedRegion(null);
         setHistory([]);
         setSelectedOrtsteil(null);
         setSelectedLandkreis(null);
+    };
+
+    // Get the current view level name for display
+    const getCurrentViewLevelName = () => {
+        switch (currentView) {
+            case ViewLevel.BUNDESLAND:
+                return "Bundesland";
+            case ViewLevel.LANDKREIS:
+                return "Landkreis";
+            case ViewLevel.BEZIRK:
+                return selectedRegion === "Berlin" ? "Landkreis" : "Bezirk";
+            case ViewLevel.ORTSTEIL:
+                return "Bezirk";
+            default:
+                return "";
+        }
+    };
+
+    // Get the next view level name for display
+    const getNextViewLevelName = () => {
+        switch (currentView) {
+            case ViewLevel.BUNDESLAND:
+                return selectedRegion === "Berlin" || selectedRegion === "Hamburg" ? "Landkreis" : "Landkreis";
+            case ViewLevel.LANDKREIS:
+                return "Bezirk";
+            case ViewLevel.BEZIRK:
+                return "Ortsteil";
+            default:
+                return "";
+        }
     };
 
     return (
@@ -629,7 +721,12 @@ const GeoMap = () => {
                 )}
                 {selectedRegion && (
                     <div className="region-info">
-                        {`${currentView.charAt(0).toUpperCase() + currentView.slice(1)}: ${selectedRegion}`}
+                        {`${getCurrentViewLevelName()}: ${selectedRegion}`}
+                    </div>
+                )}
+                {selectedOrtsteil && (
+                    <div className="region-info">
+                        {`${getNextViewLevelName()}: ${selectedOrtsteil}`}
                     </div>
                 )}
             </div>
