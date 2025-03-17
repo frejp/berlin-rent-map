@@ -538,63 +538,6 @@ const GeoMap = () => {
         }
     }
 
-    const handleBack = () => {
-        if (history.length > 1) {
-            const newHistory = [...history];
-            newHistory.pop(); // Remove current state
-            const previousItem = newHistory[newHistory.length - 1];
-            
-            // Reset states based on the previous history item
-            setHistory(newHistory);
-            setCurrentView(previousItem.level);
-            
-            // Reset region and ortsteil based on the previous level
-            switch (previousItem.level) {
-                case ViewLevel.BUNDESLAND:
-                    setSelectedRegion(null);
-                    setSelectedOrtsteil(null);
-                    setSelectedLandkreis(null);
-                    break;
-                case ViewLevel.LANDKREIS:
-                    setSelectedRegion(previousItem.name);
-                    setSelectedOrtsteil(null);
-                    break;
-                case ViewLevel.BEZIRK:
-                    setSelectedRegion(previousItem.name);
-                    setSelectedOrtsteil(null);
-                    break;
-                case ViewLevel.ORTSTEIL:
-                    setSelectedOrtsteil(null);
-                    break;
-            }
-            
-            // If we can find the feature for the previous item, zoom to it
-            if (geoJsonRef.current) {
-                let targetFeature = null;
-                geoJsonRef.current.eachLayer((layer: any) => {
-                    if (layer.feature) {
-                        const properties = layer.feature.properties;
-                        const name = properties.name || properties.bezirk_name || properties.krs_name?.[0] || properties.lan_name?.[0];
-                        if (name === previousItem.name) {
-                            targetFeature = layer.feature;
-                        }
-                    }
-                });
-                
-                if (targetFeature) {
-                    setFeatureToZoom(getBoundsFromFeature(targetFeature));
-                } else if (previousItem.level === ViewLevel.BUNDESLAND) {
-                    // If back to Bundesland, reset to Germany view
-                    const germanBounds = L.latLngBounds(
-                        L.latLng(47.27, 5.87),  // Southwest corner
-                        L.latLng(55.06, 15.04)  // Northeast corner
-                    );
-                    setFeatureToZoom(germanBounds);
-                }
-            }
-        }
-    };
-
     const mapRef = useRef<L.Map | null>(null);
     const geoJsonRef = useRef<L.GeoJSON | null>(null);
 
@@ -618,13 +561,25 @@ const GeoMap = () => {
 
     const mapCenter: [number, number] = getCenterOfGeoJson(geoJson);
 
-    // Function to go back one level
+    // Function to go back to top layer
     const handleBackToStart = () => {
+        // Reset all states to the initial view
         setCurrentView(ViewLevel.BUNDESLAND);
         setSelectedRegion(null);
-        setHistory([]);
         setSelectedOrtsteil(null);
         setSelectedLandkreis(null);
+        
+        // Reset history
+        setHistory([]);
+        
+        // Zoom out to show entire Germany
+        if (mapRef.current) {
+            const germanBounds = L.latLngBounds(
+                L.latLng(47.27, 5.87),  // Southwest corner
+                L.latLng(55.06, 15.04)  // Northeast corner
+            );
+            setFeatureToZoom(germanBounds);
+        }
     };
 
     // Get the current view level name for display
@@ -660,12 +615,50 @@ const GeoMap = () => {
     return (
         <div style={{ position: 'relative' }}>
             <style>{mapStyles}</style>
+            
+            {(currentView !== ViewLevel.BUNDESLAND) && (
+                <div style={{
+                    position: 'absolute',
+                    top: '10px',
+                    left: '0',
+                    right: '0',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '0 10px',
+                    zIndex: 1000
+                }}>
+                    <div className="region-info" style={{ 
+                        background: 'white', 
+                        padding: '5px 10px', 
+                        borderRadius: '5px',
+                        border: '1px solid #ccc'
+                    }}>
+                        {selectedRegion && `${getCurrentViewLevelName()}: ${selectedRegion}`}
+                        {selectedOrtsteil && `${getNextViewLevelName()}: ${selectedOrtsteil}`}
+                    </div>
+                    
+                    <button 
+                        onClick={handleBackToStart}
+                        style={{
+                            padding: '5px 10px',
+                            background: 'white',
+                            border: '1px solid #ccc',
+                            borderRadius: '5px',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        Back to Germany
+                    </button>
+                </div>
+            )}
+
             <MapContainer 
                 className="map" 
                 center={mapCenter} 
                 zoom={6} 
-                style={{ height: "100vh", width: "100%" }} 
                 ref={mapRef}
+                style={{ height: '100vh', width: '100%' }}
             >
                 <TileLayer
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -702,34 +695,6 @@ const GeoMap = () => {
                 />
                 <ScaleControl position="bottomright" />
             </MapContainer>
-            <div className="map-controls">
-                {currentView !== ViewLevel.BUNDESLAND && (
-                    <>
-                        <button 
-                            onClick={handleBack}
-                            className="map-button"
-                        >
-                            ← Back
-                        </button>
-                        <button 
-                            onClick={handleBackToStart}
-                            className="map-button"
-                        >
-                            Back to States
-                        </button>
-                    </>
-                )}
-                {selectedRegion && (
-                    <div className="region-info">
-                        {`${getCurrentViewLevelName()}: ${selectedRegion}`}
-                    </div>
-                )}
-                {selectedOrtsteil && (
-                    <div className="region-info">
-                        {`${getNextViewLevelName()}: ${selectedOrtsteil}`}
-                    </div>
-                )}
-            </div>
         </div>
     );
 };
