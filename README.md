@@ -1,46 +1,52 @@
-# Getting Started with Create React App
+# Berlin Rent Map
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+An interactive visualization of rental prices across Berlin and Hamburg, built with React and Leaflet. The application provides a detailed view of average rental costs at different geographical levels:
 
-## Available Scripts
+- City level (Berlin vs Hamburg)
+- District level (Bezirke)
+- Neighborhood level (Ortsteile)
 
-In the project directory, you can run:
+## Features
 
-### `npm start`
+- Interactive map with zoom levels from city overview to detailed neighborhoods
+- Color-coded visualization of rental prices
+- Detailed tooltips showing exact rental prices for each area
+- Responsive design with custom styling
+- Support for both Berlin and Hamburg data
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+## Technical Stack
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+- React 18.2
+- TypeScript 4.9
+- Leaflet for mapping
+- React-Leaflet for React integration
+- Turf.js for geospatial operations
+- TopoJSON for efficient geographical data handling
 
-### `npm test`
+## Data Structure
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+The application uses various GeoJSON/TopoJSON files for geographical boundaries and combines them with rental price data. Average rents are calculated at multiple levels:
 
-### `npm run build`
+- City-wide averages (e.g., Berlin: €840.71, Hamburg: €1000)
+- District (Bezirk) averages
+- Neighborhood (Ortsteil) specific prices
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Development
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```bash
+# Install dependencies
+npm install
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+# Start development server
+npm start
 
-### `npm run eject`
+# Build for production
+npm run build
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+## Map Features
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+- Custom color scaling based on rental prices
+- Interactive tooltips with area names and prices
+- Automatic zoom level adjustment
+- Smooth transitions between different map views

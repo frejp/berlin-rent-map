@@ -1,0 +1,210 @@
+{
+  "berlin_average": 840.71,
+  "hamburg_average": 1000,
+  "bezirk_averages": {
+    "mitte": 906.67,
+    "friedrichshain-kreuzberg": 980.00,
+    "pankow": 823.08,
+    "charlottenburg-wilmersdorf": 940.00,
+    "spandau": 797.78,
+    "steglitz-zehlendorf": 922.86,
+    "tempelhof-schoeneberg": 850.00,
+    "neukoelln": 812.00,
+    "treptow-koepenick": 806.67,
+    "marzahn-hellersdorf": 732.00,
+    "lichtenberg": 780.00,
+    "reinickendorf": 832.00,
+    "hamburg-mitte": 1100.00,
+    "altona": 1000.00,
+    "eimsbuettel": 1100.00,
+    "hamburg-nord": 1000.00,
+    "wandsbek": 900.00,
+    "bergedorf": 850.00,
+    "harburg": 800.00
+  },
+  "districts": {
+    "mitte": {
+      "Mitte": 1000,
+      "Moabit": 880,
+      "Hansaviertel": 900,
+      "Tiergarten": 960,
+      "Wedding": 840,
+      "Gesundbrunnen": 860
+    },
+    "friedrichshain-kreuzberg": {
+      "Friedrichshain": 980,
+      "Kreuzberg": 980
+    },
+    "pankow": {
+      "Prenzlauer Berg": 1000,
+      "Weißensee": 820,
+      "Blankenburg": 780,
+      "Heinersdorf": 760,
+      "Karow": 780,
+      "Stadtrandsiedlung Malchow": 740,
+      "Pankow": 920,
+      "Blankenfelde": 760,
+      "Buch": 740,
+      "Französisch Buchholz": 800,
+      "Niederschönhausen": 840,
+      "Rosenthal": 820,
+      "Wilhelmsruh": 800
+    },
+    "charlottenburg-wilmersdorf": {
+      "Charlottenburg": 960,
+      "Wilmersdorf": 940,
+      "Schmargendorf": 920,
+      "Grunewald": 980,
+      "Westend": 960,
+      "Charlottenburg-Nord": 880,
+      "Halensee": 940
+    },
+    "spandau": {
+      "Spandau": 800,
+      "Haselhorst": 820,
+      "Siemensstadt": 840,
+      "Staaken": 780,
+      "Gatow": 760,
+      "Kladow": 780,
+      "Hakenfelde": 800,
+      "Falkenhagener Feld": 780,
+      "Wilhelmstadt": 820
+    },
+    "steglitz-zehlendorf": {
+      "Steglitz": 900,
+      "Lichterfelde": 920,
+      "Lankwitz": 880,
+      "Zehlendorf": 920,
+      "Dahlem": 940,
+      "Nikolassee": 960,
+      "Wannsee": 940
+    },
+    "tempelhof-schoeneberg": {
+      "Tempelhof": 840,
+      "Schöneberg": 920,
+      "Friedenau": 940,
+      "Mariendorf": 820,
+      "Marienfelde": 800,
+      "Lichtenrade": 780
+    },
+    "neukoelln": {
+      "Neukölln": 860,
+      "Britz": 820,
+      "Buckow": 800,
+      "Rudow": 780,
+      "Gropiusstadt": 800
+    },
+    "treptow-koepenick": {
+      "Alt-Treptow": 860,
+      "Plänterwald": 820,
+      "Baumschulenweg": 840,
+      "Johannisthal": 820,
+      "Niederschöneweide": 800,
+      "Altglienicke": 780,
+      "Adlershof": 820,
+      "Bohnsdorf": 780,
+      "Oberschöneweide": 800,
+      "Grünau": 780,
+      "Müggelheim": 760,
+      "Rahnsdorf": 780,
+      "Friedrichshagen": 840
+    },
+    "marzahn-hellersdorf": {
+      "Marzahn": 720,
+      "Biesdorf": 740,
+      "Kaulsdorf": 740,
+      "Mahlsdorf": 740,
+      "Hellersdorf": 720
+    },
+    "lichtenberg": {
+      "Lichtenberg": 800,
+      "Fennpfuhl": 780,
+      "Rummelsburg": 840,
+      "Friedrichsfelde": 820,
+      "Karlshorst": 840,
+      "Wartenberg": 740,
+      "Neu-Hohenschönhausen": 760,
+      "Alt-Hohenschönhausen": 760,
+      "Falkenberg": 720,
+      "Malchow": 740
+    },
+    "reinickendorf": {
+      "Reinickendorf": 820,
+      "Tegel": 840,
+      "Konradshöhe": 800,
+      "Heiligensee": 780,
+      "Frohnau": 920,
+      "Hermsdorf": 880,
+      "Waidmannslust": 860,
+      "Lübars": 800,
+      "Wittenau": 820,
+      "Märkisches Viertel": 800
+    },
+    "hamburg-mitte": {
+      "Neustadt": 1200,
+      "St. Pauli": 1150,
+      "HafenCity": 1400,
+      "Hammerbrook": 900,
+      "Rothenburgsort": 850,
+      "Borgfelde": 900,
+      "Hamm": 850,
+      "Horn": 800,
+      "Billstedt": 800
+    },
+    "altona": {
+      "Ottensen": 1100,
+      "Blankenese": 1200,
+      "Altona-Altstadt": 1000,
+      "Bahrenfeld": 900,
+      "Groß Flottbek": 1100,
+      "Lurup": 800,
+      "Osdorf": 800,
+      "Sternschanze": 1100
+    },
+    "eimsbuettel": {
+      "Eimsbüttel": 1100,
+      "Rotherbaum": 1200,
+      "Harvestehude": 1200,
+      "Hoheluft-West": 1100,
+      "Lokstedt": 950,
+      "Niendorf": 900,
+      "Schnelsen": 850
+    },
+    "hamburg-nord": {
+      "Winterhude": 1100,
+      "Eppendorf": 1200,
+      "Hoheluft-Ost": 1100,
+      "Fuhlsbüttel": 900,
+      "Langenhorn": 850,
+      "Ohlsdorf": 850,
+      "Alsterdorf": 900
+    },
+    "wandsbek": {
+      "Wandsbek": 950,
+      "Marienthal": 850,
+      "Jenfeld": 800,
+      "Tonndorf": 850,
+      "Farmsen-Berne": 800,
+      "Bramfeld": 800,
+      "Rahlstedt": 800
+    },
+    "bergedorf": {
+      "Bergedorf": 850,
+      "Lohbrügge": 850,
+      "Allermöhe": 750,
+      "Billwerder": 750,
+      "Curslack": 750,
+      "Kirchwerder": 750,
+      "Neuallermöhe": 800
+    },
+    "harburg": {
+      "Harburg": 800,
+      "Wilhelmsburg": 800,
+      "Heimfeld": 750,
+      "Neuland": 750,
+      "Hausbruch": 750,
+      "Neugraben-Fischbek": 750,
+      "Süderelbe": 750
+    }
+  }
+} 

@@ -1,72 +1,66 @@
-import center from "@turf/center";
+import { center } from "@turf/turf";
 import L from "leaflet";
+import type { Feature, FeatureCollection, GeoJsonObject } from 'geojson';
 
-export function getColor(d) {
+export function getColor(d: number): string {
     return d > 25
         ? "#800026"
         : d > 20
-            ? "#E31A1C"
+            ? "#BD0026"
             : d > 15
-                ? "#FD8D3C"
+                ? "#E31A1C"
                 : d > 10
-                    ? "#FEB24C"
+                    ? "#FC4E2A"
                     : d > 5
-                        ? "#FED976"
-                        : "#FFEDA0";
+                        ? "#FD8D3C"
+                        : "#FEB24C";
 }
 
-export function getCenterOfGeoJson(geoJson): [number, number] {
+export function getCenterOfGeoJson(geoJson: GeoJsonObject | null): [number, number] {
     if (!geoJson) {
         return [51.1657, 10.4515]; // Default center of Germany
     }
-
+    
     try {
+        // @ts-ignore - Ignoring type issues with @turf/center as it accepts more types than TypeScript thinks
         const centerPoint = center(geoJson);
-        if (centerPoint && centerPoint.geometry && centerPoint.geometry.coordinates) {
-            const coords = centerPoint.geometry.coordinates;
-            if (Array.isArray(coords) && coords.length === 2 && 
-                typeof coords[0] === 'number' && typeof coords[1] === 'number') {
-                return [coords[1], coords[0]]; // Convert to [lat, lng] format
-            }
-        }
-        return [51.1657, 10.4515]; // Fallback to center of Germany
+        return centerPoint ? [centerPoint.geometry.coordinates[1], centerPoint.geometry.coordinates[0]] : [51.1657, 10.4515];
     } catch (error) {
         console.error('Error calculating center:', error);
         return [51.1657, 10.4515]; // Fallback to center of Germany
     }
 }
 
-export function layersUtils(geoJsonRef, mapRef) {
-    function highlightOnClick(e) {
-        var layer = e.target;
-
-        layer.setStyle({
-            weight: 2,
-            color: "#f90303",
-            dashArray: "",
-            fillOpacity: 0.7
-        });
-
-        if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+export function layersUtils(geoJsonRef: React.MutableRefObject<L.GeoJSON | null>, mapRef: React.MutableRefObject<L.Map | null>) {
+    function highlightOnClick(e: L.LeafletMouseEvent) {
+        const layer = e.target;
+        if (layer) {
+            layer.setStyle({
+                weight: 5,
+                color: '#666',
+                dashArray: '',
+                fillOpacity: 0.7
+            });
             layer.bringToFront();
         }
     }
 
-    function resetHighlight(e) {
-        if (geoJsonRef.current) {
-            geoJsonRef.current.setStyle({
-                weight: 1,
-                color: "#1f2021",
-                fillOpacity: 0.5
-            });
+    function resetHighlight(e: L.LeafletMouseEvent) {
+        const layer = e.target;
+        if (geoJsonRef.current && layer) {
+            geoJsonRef.current.resetStyle(layer);
         }
     }
 
-    function zoomToFeature(e) {
+    function zoomToFeature(e: L.LeafletMouseEvent) {
         if (mapRef.current) {
             mapRef.current.fitBounds(e.target.getBounds());
         }
     }
 
-    return { highlightOnClick, resetHighlight, zoomToFeature };
+    return {
+        highlightOnClick,
+        resetHighlight,
+        zoomToFeature
+    };
 }

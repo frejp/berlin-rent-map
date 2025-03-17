@@ -1,0 +1,138 @@
+{
+  "berlin_average": 840.71,
+  "bezirk_averages": {
+    "mitte": 906.67,
+    "friedrichshain-kreuzberg": 980.00,
+    "pankow": 823.08,
+    "charlottenburg-wilmersdorf": 940.00,
+    "spandau": 797.78,
+    "steglitz-zehlendorf": 922.86,
+    "tempelhof-schoeneberg": 850.00,
+    "neukoelln": 812.00,
+    "treptow-koepenick": 806.67,
+    "marzahn-hellersdorf": 732.00,
+    "lichtenberg": 780.00,
+    "reinickendorf": 832.00
+  },
+  "districts": {
+    "mitte": {
+      "Mitte": 1000,
+      "Moabit": 880,
+      "Hansaviertel": 900,
+      "Tiergarten": 960,
+      "Wedding": 840,
+      "Gesundbrunnen": 860
+    },
+    "friedrichshain-kreuzberg": {
+      "Friedrichshain": 980,
+      "Kreuzberg": 980
+    },
+    "pankow": {
+      "Prenzlauer Berg": 1000,
+      "Weißensee": 820,
+      "Blankenburg": 780,
+      "Heinersdorf": 760,
+      "Karow": 780,
+      "Stadtrandsiedlung Malchow": 740,
+      "Pankow": 920,
+      "Blankenfelde": 760,
+      "Buch": 740,
+      "Französisch Buchholz": 800,
+      "Niederschönhausen": 840,
+      "Rosenthal": 820,
+      "Wilhelmsruh": 800
+    },
+    "charlottenburg-wilmersdorf": {
+      "Charlottenburg": 960,
+      "Wilmersdorf": 940,
+      "Schmargendorf": 920,
+      "Grunewald": 980,
+      "Westend": 960,
+      "Charlottenburg-Nord": 880,
+      "Halensee": 940
+    },
+    "spandau": {
+      "Spandau": 800,
+      "Haselhorst": 820,
+      "Siemensstadt": 840,
+      "Staaken": 780,
+      "Gatow": 760,
+      "Kladow": 780,
+      "Hakenfelde": 800,
+      "Falkenhagener Feld": 780,
+      "Wilhelmstadt": 820
+    },
+    "steglitz-zehlendorf": {
+      "Steglitz": 900,
+      "Lichterfelde": 920,
+      "Lankwitz": 880,
+      "Zehlendorf": 920,
+      "Dahlem": 940,
+      "Nikolassee": 960,
+      "Wannsee": 940
+    },
+    "tempelhof-schoeneberg": {
+      "Tempelhof": 840,
+      "Schöneberg": 920,
+      "Friedenau": 940,
+      "Mariendorf": 820,
+      "Marienfelde": 800,
+      "Lichtenrade": 780
+    },
+    "neukoelln": {
+      "Neukölln": 860,
+      "Britz": 820,
+      "Buckow": 800,
+      "Rudow": 780,
+      "Gropiusstadt": 800
+    },
+    "treptow-koepenick": {
+      "Treptow": 840,
+      "Köpenick": 820,
+      "Alt-Treptow": 860,
+      "Plänterwald": 820,
+      "Baumschulenweg": 840,
+      "Johannisthal": 820,
+      "Niederschöneweide": 800,
+      "Altglienicke": 780,
+      "Adlershof": 820,
+      "Bohnsdorf": 780,
+      "Oberschöneweide": 800,
+      "Grünau": 780,
+      "Müggelheim": 760,
+      "Rahnsdorf": 780,
+      "Friedrichshagen": 840
+    },
+    "marzahn-hellersdorf": {
+      "Marzahn": 720,
+      "Biesdorf": 740,
+      "Kaulsdorf": 740,
+      "Mahlsdorf": 740,
+      "Hellersdorf": 720
+    },
+    "lichtenberg": {
+      "Lichtenberg": 800,
+      "Fennpfuhl": 780,
+      "Rummelsburg": 840,
+      "Friedrichsfelde": 820,
+      "Karlshorst": 840,
+      "Wartenberg": 740,
+      "Neu-Hohenschönhausen": 760,
+      "Alt-Hohenschönhausen": 760,
+      "Falkenberg": 720,
+      "Malchow": 740
+    },
+    "reinickendorf": {
+      "Reinickendorf": 820,
+      "Tegel": 840,
+      "Konradshöhe": 800,
+      "Heiligensee": 780,
+      "Frohnau": 920,
+      "Hermsdorf": 880,
+      "Waidmannslust": 860,
+      "Lübars": 800,
+      "Wittenau": 820,
+      "Märkisches Viertel": 800
+    }
+  }
+} 
