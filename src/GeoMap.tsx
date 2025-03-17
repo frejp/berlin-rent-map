@@ -1,9 +1,10 @@
-import React, { useRef, useEffect, useState } from "react";
-import { MapContainer, TileLayer, GeoJSON, ScaleControl, useMap, Tooltip } from "react-leaflet";
+import React, { useRef, useEffect, useState, useMemo } from "react";
+import { MapContainer, TileLayer, GeoJSON, ScaleControl, useMap, Tooltip, Marker } from "react-leaflet";
 import * as L from "leaflet";
 import { GeoJsonObject } from 'geojson';
 import { feature } from "topojson-client";
 import { getColor, getCenterOfGeoJson, layersUtils } from './mapUtils'
+import { center, centroid } from "@turf/turf";
 import "leaflet/dist/leaflet.css";
 import bundes from "./bundes.json";
 import landkreis from "./landskreis.json";
@@ -160,72 +161,130 @@ const tooltipStyle = {
 
 // Add this CSS to your existing styles
 const mapStyles = `
-    .custom-tooltip {
-        background: rgba(255, 255, 255, 0.95) !important;
-        border: none !important;
-        border-radius: 8px !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
-        padding: 12px 16px !important;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-        font-size: 14px !important;
-        line-height: 1.4 !important;
-    }
-    
-    .custom-tooltip:before {
-        display: none !important;
-    }
-    
-    .rent-value {
-        font-size: 18px !important;
-        font-weight: 600 !important;
-        color: #2c3e50 !important;
-        margin-top: 4px !important;
-        display: block !important;
+    .map {
+        height: 100vh;
+        width: 100%;
     }
 
-    .area-name {
-        font-size: 16px !important;
-        font-weight: 500 !important;
-        color: #34495e !important;
-        margin-bottom: 4px !important;
-    }
-    
-    .rent-label {
-        font-size: 14px !important;
-        color: #7f8c8d !important;
-    }
-    
-    .leaflet-container {
-        background: #f8f9fa !important;
-    }
-    
     .map-controls {
         position: absolute;
-        top: 20px;
-        right: 20px;
-        background: white;
-        padding: 12px;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        top: 10px;
+        right: 10px;
         z-index: 1000;
         display: flex;
         flex-direction: column;
         gap: 8px;
-    }
-    
-    .map-button {
-        padding: 8px 16px;
+        max-width: 200px;
+        margin: 0 auto;
         background: white;
-        border: 1px solid #e4e4e4;
-        border-radius: 6px;
+        padding: 10px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .map-button {
+        background: white;
+        border: 1px solid #ccc;
+        padding: 8px 16px;
+        border-radius: 4px;
         cursor: pointer;
         font-size: 14px;
-        transition: all 0.2s ease;
+        color: #2c3e50;
+        width: 100%;
+        text-align: center;
+        transition: background-color 0.2s;
+        white-space: normal;
+        word-wrap: break-word;
+        min-height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
-    
+
     .map-button:hover {
-        background: #f8f9fa;
-        border-color: #ddd;
+        background: #f5f5f5;
+    }
+
+    .region-info {
+        background: white;
+        padding: 8px;
+        border-radius: 4px;
+        font-size: 14px;
+        color: #2c3e50;
+        text-align: center;
+        width: 100%;
+        word-wrap: break-word;
+        white-space: normal;
+        line-height: 1.3;
+    }
+
+    .custom-tooltip {
+        background: white;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 14px;
+        color: #2c3e50;
+    }
+
+    /* Make the marker div transparent to mouse events */
+    .leaflet-marker-icon {
+        pointer-events: none !important;
+    }
+
+    /* Make the marker pane still receive events */
+    .leaflet-marker-pane {
+        pointer-events: auto;
+    }
+
+    .area-label {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        z-index: 1000 !important;
+    }
+
+    .area-label-content {
+        text-align: center;
+        font-size: 12px;
+        font-weight: 500;
+        text-shadow: 0px 0px 2px rgba(255,255,255,1),
+                     0px 0px 4px rgba(255,255,255,1),
+                     0px 0px 6px rgba(255,255,255,1);
+        pointer-events: none;
+        user-select: none;
+        -webkit-user-select: none;
+        max-width: 120px;
+        word-wrap: break-word;
+        hyphens: auto;
+        -webkit-hyphens: auto;
+    }
+
+    .area-label-light {
+        color: #fff;
+        text-shadow: 0px 0px 2px rgba(0,0,0,0.8),
+                     0px 0px 4px rgba(0,0,0,0.8),
+                     0px 0px 6px rgba(0,0,0,0.8);
+    }
+
+    .area-label-dark {
+        color: #000;
+        text-shadow: 0px 0px 2px rgba(255,255,255,1),
+                     0px 0px 4px rgba(255,255,255,1),
+                     0px 0px 6px rgba(255,255,255,1);
+    }
+
+    .area-name {
+        font-weight: 600;
+        margin-bottom: 2px;
+        word-break: break-word;
+        hyphens: auto;
+        -webkit-hyphens: auto;
+    }
+
+    .area-rent {
+        font-weight: 500;
     }
 `;
 
@@ -235,9 +294,11 @@ const GeoMap = () => {
     const [history, setHistory] = useState<Array<{level: ViewLevel, name: string}>>([]);
     const [selectedOrtsteil, setSelectedOrtsteil] = useState<string | null>(null);
     const [selectedLandkreis, setSelectedLandkreis] = useState<string | null>(null);
+    const [areaLabels, setAreaLabels] = useState<Array<{position: L.LatLng, content: string, isDark: boolean}>>([]);
+    const [featureToZoom, setFeatureToZoom] = useState<L.LatLngBounds | null>(null);
 
     // Get the appropriate GeoJSON data based on the current view
-    const geoJson: GeoJsonObject | null = (() => {
+    const geoJson: GeoJsonObject | null = useMemo(() => {
         switch (currentView) {
             case ViewLevel.BUNDESLAND:
                 return bundes as unknown as GeoJsonObject;
@@ -261,33 +322,16 @@ const GeoMap = () => {
                 }
                 return null;
             case ViewLevel.ORTSTEIL:
-                if (history[history.length - 2]?.name === "Berlin") {
+                if (selectedRegion) {
                     const allOrtsteile = ortsteile as OrtsteileGeoJSON;
                     const processedFeatures = allOrtsteile.features.filter(feature => {
-                        if (selectedOrtsteil) {
-                            const cleanSelectedName = selectedOrtsteil.replace(" (Ortsteil)", "");
-                            return feature.properties.Name === cleanSelectedName;
-                        }
                         const match = feature.properties.Description.match(/BEZNAME<\/td>\s*<td>([^<]+)<\/td>/);
                         const bezirkName = match ? match[1] : null;
-                        return bezirkName === selectedRegion && currentView === ViewLevel.ORTSTEIL;
+                        return bezirkName === selectedRegion;
                     });
                     
                     return processedFeatures.length > 0 ? {
                         type: "FeatureCollection" as const,
-                        features: processedFeatures
-                    } as unknown as GeoJsonObject : null;
-                } else if (history[history.length - 2]?.name === "Hamburg") {
-                    const allOrtsteile = hamburgOrtsteile as any;
-                    const processedFeatures = allOrtsteile.features.filter((feature: any) => {
-                        if (selectedOrtsteil) {
-                            return feature.properties.stadtteil_name === selectedOrtsteil;
-                        }
-                        return feature.properties.bezirk_name === selectedRegion;
-                    });
-                    
-                    return processedFeatures.length > 0 ? {
-                type: "FeatureCollection" as const,
                         features: processedFeatures
                     } as unknown as GeoJsonObject : null;
                 }
@@ -295,121 +339,184 @@ const GeoMap = () => {
             default:
                 return null;
         }
-    })();
+    }, [currentView, selectedRegion, selectedLandkreis]);
+
+    // Function to determine if background color is dark
+    const isColorDark = (color: string): boolean => {
+        const hex = color.replace('#', '');
+        const r = parseInt(hex.substr(0, 2), 16);
+        const g = parseInt(hex.substr(2, 2), 16);
+        const b = parseInt(hex.substr(4, 2), 16);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        return brightness < 128;
+    };
+
+    // Update area labels when geoJson changes
+    useEffect(() => {
+        if (!geoJson) {
+            setAreaLabels([]);
+            return;
+        }
+
+        const features = (geoJson as any).features;
+        const newLabels = features.map((feature: any) => {
+            let name = '';
+            let rent = 0;
+            
+            if (currentView === ViewLevel.BEZIRK) {
+                name = feature.properties.name || feature.properties.bezirk_name;
+                if (name) {
+                    const normalizedName = name.toLowerCase()
+                        .replace(/\s+/g, '-')
+                        .replace(/ä/g, 'ae')
+                        .replace(/ö/g, 'oe')
+                        .replace(/ü/g, 'ue')
+                        .replace(/ß/g, 'ss');
+                    rent = getAverageRentForBezirk(normalizedName);
+                }
+            } else if (currentView === ViewLevel.ORTSTEIL) {
+                name = feature.properties.Name;
+                if (name) {
+                    const berlinBezirkMatch = feature.properties.Description.match(/BEZNAME<\/td>\s*<td>([^<]+)<\/td>/);
+                    const bezirkName = berlinBezirkMatch ? berlinBezirkMatch[1] : null;
+                    
+                    if (bezirkName) {
+                        const normalizedBezirk = bezirkName.toLowerCase()
+                            .replace(/\s+/g, '-')
+                            .replace(/ä/g, 'ae')
+                            .replace(/ö/g, 'oe')
+                            .replace(/ü/g, 'ue')
+                            .replace(/ß/g, 'ss');
+                        
+                        rent = getAverageRentForOrtsteil(normalizedBezirk, name);
+                    }
+                }
+            }
+
+            if (!name || rent === 0) {
+                return null;
+            }
+
+            try {
+                const centerPoint = centroid({
+                    type: "Feature",
+                    properties: {},
+                    geometry: feature.geometry
+                });
+                const center = [centerPoint.geometry.coordinates[1], centerPoint.geometry.coordinates[0]];
+
+                const fillColor = getRentColor(rent);
+                const isDark = isColorDark(fillColor);
+
+                return {
+                    position: center as L.LatLngExpression,
+                    content: `<div class="area-name">${name}</div><div class="area-rent">${rent.toFixed(0)}€/m²</div>`,
+                    isDark
+                };
+            } catch (error) {
+                console.error('Error calculating centroid:', error);
+                return null;
+            }
+        }).filter(Boolean);
+
+        setAreaLabels(newLabels);
+    }, [geoJson, currentView]);
+
+    // Helper to get bounds from GeoJSON coordinates
+    const getBoundsFromFeature = (feature: any): L.LatLngBounds => {
+        const allLatLngs: L.LatLng[] = [];
+        
+        if (feature.geometry.type === 'Polygon') {
+            // For Polygon, use the first (outer) ring
+            const coords = feature.geometry.coordinates[0];
+            coords.forEach((coord: number[]) => {
+                allLatLngs.push(L.latLng(coord[1], coord[0]));
+            });
+        } else if (feature.geometry.type === 'MultiPolygon') {
+            // For MultiPolygon, use all outer rings
+            feature.geometry.coordinates.forEach((polygon: number[][][]) => {
+                const outerRing = polygon[0];
+                outerRing.forEach((coord: number[]) => {
+                    allLatLngs.push(L.latLng(coord[1], coord[0]));
+                });
+            });
+        }
+        
+        return L.latLngBounds(allLatLngs);
+    };
+
+    // Handle zooming in a separate effect
+    useEffect(() => {
+        if (featureToZoom && mapRef.current) {
+            const padding: L.PointTuple = [50, 50];
+            mapRef.current.fitBounds(featureToZoom, { padding });
+        }
+    }, [featureToZoom]);
 
     function onEachFeature(feature: any, layer: L.Layer) {
         let layerUtils = layersUtils(geoJsonRef, mapRef);
         if (layer instanceof L.Path) {
             layer.on({
-                mouseover: (e) => {
-                    layerUtils.highlightOnClick(e);
-                    const tooltip = layer.getTooltip();
-                    if (tooltip && layer instanceof L.Polygon) {
-                        const bounds = layer.getBounds();
-                        const center = bounds.getCenter();
-                        tooltip.setLatLng(center);
-                    }
-                },
+                mouseover: layerUtils.highlightOnClick,
                 mouseout: layerUtils.resetHighlight,
                 click: (e) => {
                     const properties = feature.properties;
                     let name;
-                    let displayName;
+                    
                     switch (currentView) {
                         case ViewLevel.LANDKREIS:
                             name = properties.krs_name?.[0];
-                            displayName = name;
                             break;
                         case ViewLevel.BEZIRK:
                             name = properties.name || properties.bezirk_name;
-                            displayName = name;
                             break;
                         case ViewLevel.ORTSTEIL:
-                            if (history[history.length - 2]?.name === "Berlin") {
-                                name = properties.Name;
-                                const berlinBezirkMatch = properties.Description.match(/BEZNAME<\/td>\s*<td>([^<]+)<\/td>/);
-                                const bezirkName = berlinBezirkMatch ? berlinBezirkMatch[1] : null;
-                                displayName = name === bezirkName ? `${name} (Ortsteil)` : name;
-                            } else {
-                                name = properties.stadtteil_name;
-                                displayName = name;
-                            }
+                            name = properties.Name || properties.stadtteil_name;
                             break;
                         default:
                             name = properties.lan_name?.[0];
-                            displayName = name;
                     }
-                    setSelectedRegion(displayName);
                     
-                    // Update view level and history
+                    // For Ortsteile, just zoom to the feature
+                    if (currentView === ViewLevel.ORTSTEIL) {
+                        setSelectedOrtsteil(name);
+                        setFeatureToZoom(getBoundsFromFeature(feature));
+                        return;
+                    }
+                    
+                    // Update view level and history for other levels
                     let nextLevel: ViewLevel;
+                    let nextHistory = [...history];
+                    
                     switch (currentView) {
                         case ViewLevel.BUNDESLAND:
                             nextLevel = name === "Berlin" || name === "Hamburg" ? ViewLevel.BEZIRK : ViewLevel.LANDKREIS;
+                            nextHistory = [...history, { level: currentView, name }];
+                            setSelectedRegion(name);
                             break;
                         case ViewLevel.BEZIRK:
                             nextLevel = ViewLevel.ORTSTEIL;
+                            nextHistory = [...history, { level: currentView, name }];
+                            setSelectedRegion(name);
                             break;
                         case ViewLevel.LANDKREIS:
                             if (name === "Berlin" || name === "Hamburg") {
                                 nextLevel = ViewLevel.BEZIRK;
+                                nextHistory = [...history, { level: currentView, name }];
+                                setSelectedRegion(name);
                             } else {
                                 nextLevel = currentView;
                                 setSelectedLandkreis(name);
-                                layerUtils.zoomToFeature(e);
-                                return;
                             }
                             break;
-                        case ViewLevel.ORTSTEIL:
-                            nextLevel = currentView;
-                            setSelectedOrtsteil(name);
-                            layerUtils.zoomToFeature(e);
-                            return;
                         default:
                             nextLevel = currentView;
                     }
                     
                     setCurrentView(nextLevel);
-                    setHistory([...history, { level: currentView, name }]);
+                    setHistory(nextHistory);
+                    setFeatureToZoom(getBoundsFromFeature(feature));
                 }
-            });
-            
-            // Create tooltip content with rent information
-            let tooltipContent;
-            switch (currentView) {
-                case ViewLevel.LANDKREIS:
-                    tooltipContent = feature.properties.krs_name?.[0];
-                    break;
-                case ViewLevel.BEZIRK:
-                    const bezirkName = feature.properties.name || feature.properties.bezirk_name;
-                    const bezirkRent = getAverageRentForBezirk(bezirkName);
-                    tooltipContent = `<div class="area-name">${bezirkName}</div><div class="rent-label">Average Rent</div><div class="rent-value">${bezirkRent.toFixed(2)} €/m²</div>`;
-                    break;
-                case ViewLevel.ORTSTEIL:
-                    let ortsteilName, ortsteilBezirk, ortsteilRent;
-                    if (history[history.length - 2]?.name === "Berlin") {
-                        const berlinBezirkMatch = feature.properties.Description.match(/BEZNAME<\/td>\s*<td>([^<]+)<\/td>/);
-                        ortsteilBezirk = berlinBezirkMatch ? berlinBezirkMatch[1] : 'Unknown';
-                        ortsteilName = feature.properties.Name;
-                    } else {
-                        ortsteilBezirk = feature.properties.bezirk_name;
-                        ortsteilName = feature.properties.stadtteil_name;
-                    }
-                    ortsteilRent = getAverageRentForOrtsteil(ortsteilBezirk, ortsteilName);
-                    tooltipContent = `<div class="area-name">${ortsteilName}</div><div class="rent-label">Average Rent</div><div class="rent-value">${ortsteilRent.toFixed(2)} €/m²</div>`;
-                    break;
-                default:
-                    if (feature.properties.lan_name?.[0] === "Berlin" || feature.properties.lan_name?.[0] === "Hamburg") {
-                        const cityAvg = getAverageRentForCity(feature.properties.lan_name[0]);
-                        tooltipContent = `<div class="area-name">${feature.properties.lan_name[0]}</div><div class="rent-label">Average Rent</div><div class="rent-value">${cityAvg.toFixed(2)} €/m²</div>`;
-                    } else {
-                        tooltipContent = feature.properties.lan_name?.[0];
-                    }
-            }
-
-            layer.bindTooltip(tooltipContent, {
-                ...tooltipStyle,
-                permanent: currentView === ViewLevel.ORTSTEIL || currentView === ViewLevel.BEZIRK
             });
         }
     }
@@ -440,12 +547,12 @@ const GeoMap = () => {
     // Function to go back one level
     const handleBack = () => {
         if (history.length > 0) {
-            const previousState = history[history.length - 2];
-            setCurrentView(previousState ? previousState.level : ViewLevel.BUNDESLAND);
-            setSelectedRegion(previousState ? previousState.name : null);
+            const previousState = history[history.length - 1];
+            setCurrentView(previousState.level);
+            setSelectedRegion(previousState.name);
             setHistory(history.slice(0, -1));
-            setSelectedOrtsteil(null); // Reset selected ortsteil
-            setSelectedLandkreis(null); // Reset selected landkreis
+            setSelectedOrtsteil(null);
+            setSelectedLandkreis(null);
         }
     };
 
@@ -468,15 +575,34 @@ const GeoMap = () => {
                 style={{ height: "100vh", width: "100%" }} 
                 ref={mapRef}
             >
+                <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                />
                 {geoJson && (
                 <GeoJSON
                         data={geoJson as GeoJsonObject}
-                        key={`${currentView}-${selectedRegion || ''}`}
-                    style={geoJSONStyle}
-                    ref={geoJsonRef}
-                    onEachFeature={onEachFeature}
+                        key={`${currentView}-${selectedRegion || ''}-${selectedOrtsteil || ''}`}
+                        style={geoJSONStyle}
+                        ref={geoJsonRef}
+                        onEachFeature={onEachFeature}
                 />
                 )}
+                {areaLabels.map((label, index) => (
+                    <Marker
+                        key={index}
+                        position={label.position}
+                        icon={L.divIcon({
+                            html: `<div class="area-label-content ${label.isDark ? 'area-label-light' : 'area-label-dark'}">
+                                    <div class="area-name">${label.content.match(/<div class="area-name">(.*?)<\/div>/)?.[1] || ''}</div>
+                                    <div class="area-rent">${label.content.match(/<div class="area-rent">(.*?)<\/div>/)?.[1] || ''}</div>
+                                  </div>`,
+                            className: 'area-label',
+                            iconSize: [120, 60],
+                            iconAnchor: [60, 30]
+                        })}
+                    />
+                ))}
                 <CityMarkers 
                     currentView={currentView}
                     selectedLandkreis={selectedLandkreis}
@@ -493,24 +619,16 @@ const GeoMap = () => {
                         >
                             ← Back
                         </button>
-                    <button 
+                        <button 
                             onClick={handleBackToStart}
                             className="map-button"
-                    >
-                        Back to States
-                    </button>
+                        >
+                            Back to States
+                        </button>
                     </>
                 )}
                 {selectedRegion && (
-                    <div style={{
-                        background: 'white',
-                        padding: '10px',
-                        borderRadius: '6px',
-                        fontSize: '14px',
-                        color: '#2c3e50',
-                        borderTop: '1px solid #e4e4e4',
-                        marginTop: '8px'
-                    }}>
+                    <div className="region-info">
                         {`${currentView.charAt(0).toUpperCase() + currentView.slice(1)}: ${selectedRegion}`}
                     </div>
                 )}
