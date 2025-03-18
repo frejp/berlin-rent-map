@@ -300,20 +300,6 @@ const GeoMap = () => {
     // Get the appropriate GeoJSON data based on the current view
     const geoJson: GeoJsonObject | null = useMemo(() => {
         switch (currentView) {
-            case ViewLevel.BUNDESLAND:
-                return bundes as unknown as GeoJsonObject;
-            case ViewLevel.LANDKREIS:
-                const allLandkreise = landkreis as LandkreisGeoJSON;
-                const filteredFeatures = allLandkreise.features.filter(feature => {
-                    if (selectedLandkreis) {
-                        return feature.properties.krs_name?.[0] === selectedLandkreis;
-                    }
-                    return feature.properties.lan_name?.[0] === selectedRegion;
-                });
-                return filteredFeatures.length > 0 ? {
-                    type: "FeatureCollection" as const,
-                    features: filteredFeatures
-                } as unknown as GeoJsonObject : null;
             case ViewLevel.BEZIRK:
                 if (selectedRegion === "Berlin") {
                     return berlinBezirke as unknown as GeoJsonObject;
@@ -339,7 +325,7 @@ const GeoMap = () => {
             default:
                 return null;
         }
-    }, [currentView, selectedRegion, selectedLandkreis]);
+    }, [currentView, selectedRegion]);
 
     // Function to determine if background color is dark
     const isColorDark = (color: string): boolean => {
@@ -464,8 +450,8 @@ const GeoMap = () => {
             // Berlin city view - use minimal padding to maximize size
             if (currentView === ViewLevel.BEZIRK && selectedRegion === "Berlin") {
                 mapRef.current.fitBounds(featureToZoom, { 
-                    padding: [10, 10],  // Minimal padding for bezirk view
-                    maxZoom: 12,  // Increased zoom for Berlin bezirks
+                    padding: [5, 5],  // Even smaller padding for bezirk view
+                    maxZoom: 14,  // Higher zoom for Berlin bezirks
                     animate: true
                 });
                 return;
@@ -534,9 +520,6 @@ const GeoMap = () => {
                     let name;
                     
                     switch (currentView) {
-                        case ViewLevel.LANDKREIS:
-                            name = properties.krs_name?.[0];
-                            break;
                         case ViewLevel.BEZIRK:
                             name = properties.name || properties.bezirk_name;
                             break;
@@ -554,46 +537,13 @@ const GeoMap = () => {
                         return;
                     }
                     
-                    // Update view level and history for other levels
-                    let nextLevel: ViewLevel;
-                    
-                    switch (currentView) {
-                        case ViewLevel.BUNDESLAND:
-                            nextLevel = name === "Berlin" || name === "Hamburg" ? ViewLevel.BEZIRK : ViewLevel.LANDKREIS;
-                            setSelectedRegion(name);
-                            addToHistory(name, currentView);
-                            
-                            // Make sure to set the view level before doing any early returns
-                            setCurrentView(nextLevel);
-                            
-                            // Use getBoundsFromFeature for consistent bounds fitting
-                            setFeatureToZoom(getBoundsFromFeature(feature));
-                            return;
-                            
-                        case ViewLevel.BEZIRK:
-                            nextLevel = ViewLevel.ORTSTEIL;
-                            setSelectedRegion(name);
-                            addToHistory(name, currentView);
-                            setCurrentView(nextLevel);
-                            break;
-                        case ViewLevel.LANDKREIS:
-                            if (name === "Berlin" || name === "Hamburg") {
-                                nextLevel = ViewLevel.BEZIRK;
-                                setSelectedRegion(name);
-                                addToHistory(name, currentView);
-                            } else {
-                                nextLevel = currentView;
-                                setSelectedLandkreis(name);
-                            }
-                            setCurrentView(nextLevel);
-                            break;
-                        default:
-                            nextLevel = currentView;
-                            setCurrentView(nextLevel);
+                    // Update view level for Bezirk only
+                    if (currentView === ViewLevel.BEZIRK) {
+                        setCurrentView(ViewLevel.ORTSTEIL);
+                        setSelectedRegion(name);
+                        addToHistory(name, currentView);
+                        setFeatureToZoom(getBoundsFromFeature(feature));
                     }
-                    
-                    // No duplicate setCurrentView here, just set the feature to zoom
-                    setFeatureToZoom(getBoundsFromFeature(feature));
                 }
             });
         }
@@ -688,50 +638,61 @@ const GeoMap = () => {
         <div style={{ position: 'relative' }}>
             <style>{mapStyles}</style>
             
-            {(currentView !== ViewLevel.BUNDESLAND) && (
-                <div style={{
-                    position: 'absolute',
-                    top: '10px',
-                    left: '0',
-                    right: '0',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '0 10px',
-                    zIndex: 1000
+            <div style={{
+                position: 'absolute',
+                top: '10px',
+                left: '0',
+                right: '0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '0 10px',
+                zIndex: 1000
+            }}>
+                <div className="region-info" style={{ 
+                    background: 'white', 
+                    padding: '5px 10px', 
+                    borderRadius: '5px',
+                    border: '1px solid #ccc'
                 }}>
-                    <div className="region-info" style={{ 
-                        background: 'white', 
-                        padding: '5px 10px', 
-                        borderRadius: '5px',
-                        border: '1px solid #ccc'
-                    }}>
-                        {selectedRegion && (
-                            (currentView === ViewLevel.BEZIRK && (selectedRegion === "Berlin" || selectedRegion === "Hamburg"))
-                            ? `Stadtstaat: ${selectedRegion}`
-                            : (currentView === ViewLevel.ORTSTEIL) 
-                              ? `Bezirk: ${selectedRegion}` 
-                              : `${getCurrentViewLevelName()}: ${selectedRegion}`
-                        )}
-                        {selectedOrtsteil && ` Ortsteil: ${selectedOrtsteil}`}
-                    </div>
-                    
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                        <button 
-                            onClick={handleBackToStart}
-                            style={{
-                                padding: '5px 10px',
-                                background: 'white',
-                                border: '1px solid #ccc',
-                                borderRadius: '5px',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            Back to Germany
-                        </button>
-                    </div>
+                    {selectedRegion && (
+                        (currentView === ViewLevel.BEZIRK && (selectedRegion === "Berlin" || selectedRegion === "Hamburg"))
+                        ? `Stadtstaat: ${selectedRegion}`
+                        : (currentView === ViewLevel.ORTSTEIL) 
+                          ? `Bezirk: ${selectedRegion}` 
+                          : `${getCurrentViewLevelName()}: ${selectedRegion}`
+                    )}
+                    {selectedOrtsteil && ` Ortsteil: ${selectedOrtsteil}`}
                 </div>
-            )}
+                
+                {currentView === ViewLevel.ORTSTEIL && (
+                    <button 
+                        onClick={() => {
+                            setCurrentView(ViewLevel.BEZIRK);
+                            setSelectedRegion("Berlin");
+                            setSelectedOrtsteil(null);
+                            
+                            // Set bounds for Berlin bezirk view
+                            if (mapRef.current) {
+                                const berlinBounds = L.latLngBounds(
+                                    L.latLng(52.3300, 13.0900),  // Southwest
+                                    L.latLng(52.6800, 13.7600)   // Northeast
+                                );
+                                setFeatureToZoom(berlinBounds);
+                            }
+                        }}
+                        style={{
+                            padding: '5px 10px',
+                            background: 'white',
+                            border: '1px solid #ccc',
+                            borderRadius: '5px',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        Back to Berlin
+                    </button>
+                )}
+            </div>
 
             <MapContainer 
                 className="map" 
