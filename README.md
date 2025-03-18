@@ -4,9 +4,8 @@ Live link: https://frejp.github.io/berlin-rent-map/
 
 # Berlin Rent Map
 
-An interactive visualization of rental prices across Berlin and Hamburg, built with React and Leaflet. The application provides a detailed view of average rental costs at different geographical levels:
+An interactive visualization of rental prices across Berlin, built with React and Leaflet. The application provides a detailed view of average rental costs at different geographical levels:
 
-- City level (Berlin vs Hamburg)
 - District level (Bezirke)
 - Neighborhood level (Ortsteile)
 
@@ -16,7 +15,6 @@ An interactive visualization of rental prices across Berlin and Hamburg, built w
 - Color-coded visualization of rental prices
 - Detailed tooltips showing exact rental prices for each area
 - Responsive design with custom styling
-- Support for both Berlin and Hamburg data
 
 ## Technical Stack
 
@@ -25,13 +23,11 @@ An interactive visualization of rental prices across Berlin and Hamburg, built w
 - Leaflet for mapping
 - React-Leaflet for React integration
 - Turf.js for geospatial operations
-- TopoJSON for efficient geographical data handling
 
 ## Data Structure
 
-The application uses various GeoJSON/TopoJSON files for geographical boundaries and combines them with rental price data. Average rents are calculated at multiple levels:
+The application uses GeoJSON files for geographical boundaries and combines them with rental price data. Average rents are calculated at multiple levels:
 
-- City-wide averages (e.g., Berlin: €840.71, Hamburg: €1000)
 - District (Bezirk) averages
 - Neighborhood (Ortsteil) specific prices
 
@@ -58,7 +54,7 @@ npm run build
 ## Deployment
 
 This project is deployed on GitHub Pages. You can view the live version at:
-[https://YOUR_GITHUB_USERNAME.github.io/berlin-rent-map](https://YOUR_GITHUB_USERNAME.github.io/berlin-rent-map)
+[https://frejp.github.io/berlin-rent-map](https://frejp.github.io/berlin-rent-map)
 
 ### How to Deploy
 
@@ -89,12 +85,11 @@ The application will be available at [http://localhost:3000](http://localhost:30
 
 ## How to Navigate the Map
 
-1. Start with a view of Berlin districts
+1. View Berlin districts on initial load
 2. Click on a district to zoom in and view its neighborhoods
-3. Use the "Back to Germany" button to view the entire country
-4. Click on regions to drill down into more detailed views
+3. Use the "Back to Berlin" button to return to the district view
 
 ## Data Sources
 
-- Rent price data is based on average prices per square meter in each district
-- Geographical data sources include official Berlin and Hamburg administrative boundaries
+- Rent price data is based on average prices for 40m² apartments in each district
+- Geographical data sources include official Berlin administrative boundaries
