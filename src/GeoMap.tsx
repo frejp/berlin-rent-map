@@ -431,64 +431,53 @@ const GeoMap = () => {
         return L.latLngBounds(allLatLngs);
     };
 
-    // Handle zooming in a separate effect
+    // Universal zoom algorithm with Pankow fallback
     useEffect(() => {
         if (featureToZoom && mapRef.current) {
-            // Use a moderate padding (10%) to make features fill ~80% of the viewport
-            const padding: L.PointTuple = [50, 50];
+            // Base case: Use negative padding for ALL districts
+            // This ensures they take up more than the viewport (overflow slightly)
             
-            // Special case for Germany view
-            if (currentView === ViewLevel.BUNDESLAND && !selectedRegion) {
-                mapRef.current.fitBounds(featureToZoom, { 
-                    padding,
-                    maxZoom: 7,  // Restrict zoom for Germany view
-                    animate: true
-                });
-                return;
-            }
-            
-            // Berlin city view - use minimal padding to maximize size
-            if (currentView === ViewLevel.BEZIRK && selectedRegion === "Berlin") {
-                mapRef.current.fitBounds(featureToZoom, { 
-                    padding: [5, 5],  // Even smaller padding for bezirk view
-                    maxZoom: 14,  // Higher zoom for Berlin bezirks
-                    animate: true
-                });
-                return;
-            }
-            
-            // Hamburg bezirk view
-            if (currentView === ViewLevel.BEZIRK && selectedRegion === "Hamburg") {
-                mapRef.current.fitBounds(featureToZoom, { 
-                    padding: [10, 10],  // Minimal padding for bezirk view
-                    maxZoom: 12,  // Consistent with Berlin
-                    animate: true
-                });
-                return;
-            }
-            
-            // For specific large districts, use more padding
-            if (currentView === ViewLevel.ORTSTEIL && selectedRegion) {
-                if (selectedRegion === "Pankow" || 
-                    selectedRegion === "Treptow-Köpenick" || 
-                    selectedRegion === "Spandau") {
+            // Special case for Pankow - directly center and zoom to ensure it works
+            if (selectedRegion === "Pankow") {
+                // Try fitBounds with aggressive negative padding first
+                try {
                     mapRef.current.fitBounds(featureToZoom, { 
-                        padding: [20, 20],  // Less padding for large districts
-                        maxZoom: 13,        // Increased zoom level
-                        animate: true
+                        padding: [-50, -50], // More aggressive for Pankow
+                        animate: true,
+                        maxZoom: 12
                     });
-                    return;
+                    console.log("Using fitBounds with negative padding for Pankow");
+                } catch (e) {
+                    // If that fails for any reason, use our guaranteed fallback
+                    console.log("Falling back to direct zoom for Pankow");
+                    mapRef.current.setView([52.5663, 13.4121], 11);
                 }
+                return;
             }
             
-            // Default case - use minimal padding to fill screen
+            // For Berlin city view
+            if (selectedRegion === "Berlin" && currentView === ViewLevel.BEZIRK) {
+                try {
+                    mapRef.current.fitBounds(featureToZoom, { 
+                        padding: [-100, -100],  // More aggressive negative padding for Berlin
+                        animate: true,
+                        maxZoom: 13  // Increased from 12 to 13
+                    });
+                } catch (e) {
+                    // Guaranteed fallback with higher zoom
+                    mapRef.current.setView([52.5200, 13.4050], 12.5);  // Increased from 11.5 to 12.5
+                }
+                return;
+            }
+            
+            // For all other districts: use negative padding to ensure they take up MORE than viewport
             mapRef.current.fitBounds(featureToZoom, { 
-                padding: [20, 20],  // Less padding by default
-                maxZoom: 14,       // Higher default max zoom
-                animate: true
+                padding: [-30, -30], // Negative padding means the polygon extends beyond the viewport
+                animate: true,
+                maxZoom: 13 // Limit max zoom to avoid getting too close
             });
         }
-    }, [featureToZoom, currentView, selectedRegion]);
+    }, [featureToZoom, selectedRegion, currentView]);
 
     const addToHistory = (name: string, level: ViewLevel) => {
         setHistory(prevHistory => {
@@ -539,10 +528,16 @@ const GeoMap = () => {
                     
                     // Update view level for Bezirk only
                     if (currentView === ViewLevel.BEZIRK) {
+                        // First calculate bounds from the feature
+                        const bounds = getBoundsFromFeature(feature);
+                        
+                        // Then update state AFTER storing the feature bounds 
+                        setFeatureToZoom(bounds);
+                        
+                        // Now update the rest of the state
                         setCurrentView(ViewLevel.ORTSTEIL);
                         setSelectedRegion(name);
                         addToHistory(name, currentView);
-                        setFeatureToZoom(getBoundsFromFeature(feature));
                     }
                 }
             });
@@ -668,18 +663,19 @@ const GeoMap = () => {
                 {currentView === ViewLevel.ORTSTEIL && (
                     <button 
                         onClick={() => {
+                            // Define more focused Berlin bounds (slightly smaller area)
+                            const berlinBounds = L.latLngBounds(
+                                L.latLng(52.4000, 13.2000),  // Southwest - more focused
+                                L.latLng(52.6000, 13.6000)   // Northeast - more focused
+                            );
+                            
+                            // Set the zoom bounds BEFORE changing state
+                            setFeatureToZoom(berlinBounds);
+                            
+                            // Then update state
                             setCurrentView(ViewLevel.BEZIRK);
                             setSelectedRegion("Berlin");
                             setSelectedOrtsteil(null);
-                            
-                            // Set bounds for Berlin bezirk view
-                            if (mapRef.current) {
-                                const berlinBounds = L.latLngBounds(
-                                    L.latLng(52.3300, 13.0900),  // Southwest
-                                    L.latLng(52.6800, 13.7600)   // Northeast
-                                );
-                                setFeatureToZoom(berlinBounds);
-                            }
                         }}
                         style={{
                             padding: '5px 10px',
