@@ -50,3 +50,47 @@ npm run build
 - Interactive tooltips with area names and prices
 - Automatic zoom level adjustment
 - Smooth transitions between different map views
+
+## Deployment
+
+This project is deployed on GitHub Pages. You can view the live version at:
+[https://YOUR_GITHUB_USERNAME.github.io/berlin-rent-map](https://YOUR_GITHUB_USERNAME.github.io/berlin-rent-map)
+
+### How to Deploy
+
+1. Fork or clone this repository
+2. Update the `homepage` field in `package.json` with your GitHub username:
+   ```json
+   "homepage": "https://YOUR_GITHUB_USERNAME.github.io/berlin-rent-map"
+   ```
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
+4. Deploy to GitHub Pages:
+   ```bash
+   npm run deploy
+   ```
+
+## Local Development
+
+To run the project locally:
+
+```bash
+npm install
+npm start
+```
+
+The application will be available at [http://localhost:3000](http://localhost:3000).
+
+## How to Navigate the Map
+
+1. Start with a view of Berlin districts
+2. Click on a district to zoom in and view its neighborhoods
+3. Use the "Back to Germany" button to view the entire country
+4. Click on regions to drill down into more detailed views
+
+## Data Sources
+
+- Rent price data is based on average prices per square meter in each district
+- Geographical data sources include official Berlin and Hamburg administrative boundaries
