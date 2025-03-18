@@ -1,5 +1,5 @@
 // Import the rent data from the JSON file
-import rentPrices from './combined_rent_data.json';
+import rentData from './data/combined_rent_data.json';
 
 // Define valid district keys
 type DistrictKey = 
@@ -33,7 +33,7 @@ interface RentPrices {
     districts: DistrictNeighborhoods;
 }
 
-const typedRentPrices = rentPrices as RentPrices;
+const typedRentPrices = rentData as RentPrices;
 
 // Function to get average rent for a specific Planungsraum
 export function getAverageRentForPlanungsraum(bezirk: string, ortsteil: string, planungsraum: string): number {
@@ -121,4 +121,4 @@ export function getRentDataForArea(bezirk: string, ortsteil?: string): number[] 
 }
 
 // Export the raw data for direct access if needed
-export const rentPricesData: RentPrices = rentPrices as RentPrices;
+export const rentPricesData: RentPrices = rentData as RentPrices;

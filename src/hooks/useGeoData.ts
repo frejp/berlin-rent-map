@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import { GeoJsonObject } from 'geojson';
 import { ViewLevel, OrtsteileGeoJSON } from '../types';
-import berlinBezirke from "../berlin_bezirke.json";
-import ortsteile from "../ortsteile.json";
+import berlinBezirke from "../data/berlin_bezirke.json";
+import ortsteile from "../data/ortsteile.json";
 
 /**
  * Custom hook to handle GeoJSON data fetching and processing
