@@ -79,7 +79,7 @@ export const mapStyles = `
 
     .region-info {
         position: absolute;
-        left: 10px;
+        left: 50px;
         top: 10px;
         z-index: 1000;
         background: white;
