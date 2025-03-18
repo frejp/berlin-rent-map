@@ -1,5 +1,7 @@
 # THIS CODE WAS COMPLETLY MADE WITH CURSOR AI SO ITS MESSY AND UNMAINTAINABLE
 
+Live link: https://frejp.github.io/berlin-rent-map/
+
 # Berlin Rent Map
 
 An interactive visualization of rental prices across Berlin and Hamburg, built with React and Leaflet. The application provides a detailed view of average rental costs at different geographical levels:
