@@ -18,35 +18,7 @@ export const useMapZoom = (
     // Handle zooming when a region is selected
     useEffect(() => {
         if (featureToZoom && mapRef.current) {
-            // Special case for Pankow - it needs special handling
-            if (selectedRegion === "Pankow") {
-                try {
-                    mapRef.current.fitBounds(featureToZoom, { 
-                        padding: [-50, -50], // More aggressive for Pankow
-                        animate: true,
-                        maxZoom: 12
-                    });
-                } catch (e) {
-                    // Fallback if that fails
-                    mapRef.current.setView([52.5663, 13.4121], 11);
-                }
-                return;
-            }
-            
-            // For Berlin city view
-            if (selectedRegion === "Berlin" && currentView === ViewLevel.BEZIRK) {
-                try {
-                    // Use direct center and zoom level instead of fitBounds
-                    // for more consistent results
-                    mapRef.current.setView([52.52, 13.405], 11);
-                } catch (e) {
-                    // Fallback for Berlin
-                    mapRef.current.setView([52.52, 13.405], 11);
-                }
-                return;
-            }
-            
-            // Default case for all other regions
+            // Default case for all regions
             mapRef.current.fitBounds(featureToZoom, { 
                 padding: [-30, -30], // Negative padding for maximum screen coverage
                 animate: true,
