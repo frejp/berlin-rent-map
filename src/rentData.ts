@@ -87,17 +87,25 @@ function getMinMaxRent(): { min: number; max: number } {
 
 // Function to get color based on rent price
 export function getRentColor(rent: number): string {
-    return rent > 1200
-        ? "#67000d" // Very dark red
-        : rent > 1000
-        ? "#a50f15" // Dark red
-        : rent > 900
-        ? "#cb181d" // Red
-        : rent > 800
-        ? "#ef3b2c" // Bright red
-        : rent > 700
-        ? "#fb6a4a" // Light red
-        : "#fc9272"; // Very light red
+    // Use a green to red color scale with proper thresholds
+    if (rent === 0) return "#e0e0e0"; // Gray for no data
+    
+    // Rent values are absolute euros, typically ranging from 700-1100€
+    return rent >= 1000
+        ? "#bd0026" // Dark red (most expensive)
+        : rent >= 950
+        ? "#e31a1c" // Red
+        : rent >= 900
+        ? "#fc4e2a" // Red-orange
+        : rent >= 850
+        ? "#fd8d3c" // Orange
+        : rent >= 800
+        ? "#feb24c" // Yellow-orange
+        : rent >= 780
+        ? "#fed976" // Yellow
+        : rent >= 750
+        ? "#addd8e" // Light green
+        : "#31a354"; // Green (cheapest)
 }
 
 // Function to get all rent data for a specific area

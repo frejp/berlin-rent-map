@@ -1,7 +1,7 @@
 import React from 'react';
 import { CircleMarker, Tooltip } from 'react-leaflet';
 import { majorGermanCities } from './cities';
-import { ViewLevel } from './GeoMap';
+import { ViewLevel } from './types';
 
 interface CityMarkersProps {
     currentView: ViewLevel;
