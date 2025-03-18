@@ -2,7 +2,7 @@
   "name": "berlin-rent-map",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://YOUR_GITHUB_USERNAME.github.io/berlin-rent-map",
+  "homepage": "https://frejp.github.io/berlin-rent-map",
   "dependencies": {
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
