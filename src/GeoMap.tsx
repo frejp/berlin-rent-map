@@ -289,9 +289,9 @@ const mapStyles = `
 `;
 
 const GeoMap = () => {
-    const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
-    const [currentView, setCurrentView] = useState<ViewLevel.BUNDESLAND | ViewLevel.LANDKREIS | ViewLevel.BEZIRK | ViewLevel.ORTSTEIL>(ViewLevel.BUNDESLAND);
-    const [history, setHistory] = useState<Array<{level: ViewLevel, name: string}>>([]);
+    const [selectedRegion, setSelectedRegion] = useState<string | null>("Berlin");
+    const [currentView, setCurrentView] = useState<ViewLevel.BUNDESLAND | ViewLevel.LANDKREIS | ViewLevel.BEZIRK | ViewLevel.ORTSTEIL>(ViewLevel.BEZIRK);
+    const [history, setHistory] = useState<Array<{level: ViewLevel, name: string}>>([{level: ViewLevel.BUNDESLAND, name: "Berlin"}]);
     const [selectedOrtsteil, setSelectedOrtsteil] = useState<string | null>(null);
     const [selectedLandkreis, setSelectedLandkreis] = useState<string | null>(null);
     const [areaLabels, setAreaLabels] = useState<Array<{position: L.LatLng, content: string, isDark: boolean}>>([]);
@@ -448,12 +448,63 @@ const GeoMap = () => {
     // Handle zooming in a separate effect
     useEffect(() => {
         if (featureToZoom && mapRef.current) {
+            // Use a moderate padding (10%) to make features fill ~80% of the viewport
             const padding: L.PointTuple = [50, 50];
-            mapRef.current.fitBounds(featureToZoom, { padding });
+            
+            // Special case for Germany view
+            if (currentView === ViewLevel.BUNDESLAND && !selectedRegion) {
+                mapRef.current.fitBounds(featureToZoom, { 
+                    padding,
+                    maxZoom: 7,  // Restrict zoom for Germany view
+                    animate: true
+                });
+                return;
+            }
+            
+            // Berlin city view - use minimal padding to maximize size
+            if (currentView === ViewLevel.BEZIRK && selectedRegion === "Berlin") {
+                mapRef.current.fitBounds(featureToZoom, { 
+                    padding: [10, 10],  // Minimal padding for bezirk view
+                    maxZoom: 12,  // Increased zoom for Berlin bezirks
+                    animate: true
+                });
+                return;
+            }
+            
+            // Hamburg bezirk view
+            if (currentView === ViewLevel.BEZIRK && selectedRegion === "Hamburg") {
+                mapRef.current.fitBounds(featureToZoom, { 
+                    padding: [10, 10],  // Minimal padding for bezirk view
+                    maxZoom: 12,  // Consistent with Berlin
+                    animate: true
+                });
+                return;
+            }
+            
+            // For specific large districts, use more padding
+            if (currentView === ViewLevel.ORTSTEIL && selectedRegion) {
+                if (selectedRegion === "Pankow" || 
+                    selectedRegion === "Treptow-Köpenick" || 
+                    selectedRegion === "Spandau") {
+                    mapRef.current.fitBounds(featureToZoom, { 
+                        padding: [20, 20],  // Less padding for large districts
+                        maxZoom: 13,        // Increased zoom level
+                        animate: true
+                    });
+                    return;
+                }
+            }
+            
+            // Default case - use minimal padding to fill screen
+            mapRef.current.fitBounds(featureToZoom, { 
+                padding: [20, 20],  // Less padding by default
+                maxZoom: 14,       // Higher default max zoom
+                animate: true
+            });
         }
-    }, [featureToZoom]);
+    }, [featureToZoom, currentView, selectedRegion]);
 
-    const addToHistory = (level: ViewLevel, name: string) => {
+    const addToHistory = (name: string, level: ViewLevel) => {
         setHistory(prevHistory => {
             // Prevent adding duplicate entries
             if (prevHistory.length > 0 && 
@@ -510,28 +561,38 @@ const GeoMap = () => {
                         case ViewLevel.BUNDESLAND:
                             nextLevel = name === "Berlin" || name === "Hamburg" ? ViewLevel.BEZIRK : ViewLevel.LANDKREIS;
                             setSelectedRegion(name);
-                            addToHistory(currentView, name);
-                            break;
+                            addToHistory(name, currentView);
+                            
+                            // Make sure to set the view level before doing any early returns
+                            setCurrentView(nextLevel);
+                            
+                            // Use getBoundsFromFeature for consistent bounds fitting
+                            setFeatureToZoom(getBoundsFromFeature(feature));
+                            return;
+                            
                         case ViewLevel.BEZIRK:
                             nextLevel = ViewLevel.ORTSTEIL;
                             setSelectedRegion(name);
-                            addToHistory(currentView, name);
+                            addToHistory(name, currentView);
+                            setCurrentView(nextLevel);
                             break;
                         case ViewLevel.LANDKREIS:
                             if (name === "Berlin" || name === "Hamburg") {
                                 nextLevel = ViewLevel.BEZIRK;
                                 setSelectedRegion(name);
-                                addToHistory(currentView, name);
+                                addToHistory(name, currentView);
                             } else {
                                 nextLevel = currentView;
                                 setSelectedLandkreis(name);
                             }
+                            setCurrentView(nextLevel);
                             break;
                         default:
                             nextLevel = currentView;
+                            setCurrentView(nextLevel);
                     }
                     
-                    setCurrentView(nextLevel);
+                    // No duplicate setCurrentView here, just set the feature to zoom
                     setFeatureToZoom(getBoundsFromFeature(feature));
                 }
             });
@@ -540,14 +601,6 @@ const GeoMap = () => {
 
     const mapRef = useRef<L.Map | null>(null);
     const geoJsonRef = useRef<L.GeoJSON | null>(null);
-
-    useEffect(() => {
-        if (mapRef.current && geoJsonRef.current) {
-            const map = mapRef.current;
-            const bounds = geoJsonRef.current.getBounds();
-            map.fitBounds(bounds);
-        }
-    }, [geoJson]);
 
     // Add CSS for the tooltips
     useEffect(() => {
@@ -572,12 +625,15 @@ const GeoMap = () => {
         // Reset history
         setHistory([]);
         
-        // Zoom out to show entire Germany
+        // Zoom out to show entire Germany with appropriate padding
         if (mapRef.current) {
             const germanBounds = L.latLngBounds(
                 L.latLng(47.27, 5.87),  // Southwest corner
                 L.latLng(55.06, 15.04)  // Northeast corner
             );
+            
+            // Set the feature to zoom using the same bounds
+            // This ensures our main zoom effect handles it consistently
             setFeatureToZoom(germanBounds);
         }
     };
@@ -612,6 +668,18 @@ const GeoMap = () => {
         }
     };
 
+    // Set initial Berlin view on first load
+    useEffect(() => {
+        if (mapRef.current) {
+            // Create Berlin bounds and set the feature to zoom
+            const berlinBounds = L.latLngBounds(
+                L.latLng(52.3300, 13.0900),  // Southwest
+                L.latLng(52.6800, 13.7600)   // Northeast
+            );
+            setFeatureToZoom(berlinBounds);
+        }
+    }, []);
+
     return (
         <div style={{ position: 'relative' }}>
             <style>{mapStyles}</style>
@@ -638,25 +706,27 @@ const GeoMap = () => {
                         {selectedOrtsteil && `${getNextViewLevelName()}: ${selectedOrtsteil}`}
                     </div>
                     
-                    <button 
-                        onClick={handleBackToStart}
-                        style={{
-                            padding: '5px 10px',
-                            background: 'white',
-                            border: '1px solid #ccc',
-                            borderRadius: '5px',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        Back to Germany
-                    </button>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button 
+                            onClick={handleBackToStart}
+                            style={{
+                                padding: '5px 10px',
+                                background: 'white',
+                                border: '1px solid #ccc',
+                                borderRadius: '5px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Back to Germany
+                        </button>
+                    </div>
                 </div>
             )}
 
             <MapContainer 
                 className="map" 
                 center={mapCenter} 
-                zoom={6} 
+                zoom={11} 
                 ref={mapRef}
                 style={{ height: '100vh', width: '100%' }}
             >
@@ -667,7 +737,7 @@ const GeoMap = () => {
                 {geoJson && (
                 <GeoJSON
                         data={geoJson as GeoJsonObject}
-                        key={`${currentView}-${selectedRegion || ''}-${selectedOrtsteil || ''}`}
+                        key={`${currentView}-${selectedRegion || ''}-${selectedOrtsteil || ''}-${history.length}`}
                         style={geoJSONStyle}
                         ref={geoJsonRef}
                         onEachFeature={onEachFeature}
