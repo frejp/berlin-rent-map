@@ -644,11 +644,15 @@ const GeoMap = () => {
             case ViewLevel.BUNDESLAND:
                 return "Bundesland";
             case ViewLevel.LANDKREIS:
+                // Berlin and Hamburg are Stadtstaaten, which are equivalent to Landkreise
+                if (selectedRegion === "Berlin" || selectedRegion === "Hamburg") {
+                    return "Stadtstaat";
+                }
                 return "Landkreis";
             case ViewLevel.BEZIRK:
-                return selectedRegion === "Berlin" ? "Landkreis" : "Bezirk";
-            case ViewLevel.ORTSTEIL:
                 return "Bezirk";
+            case ViewLevel.ORTSTEIL:
+                return "Ortsteil";
             default:
                 return "";
         }
@@ -658,7 +662,7 @@ const GeoMap = () => {
     const getNextViewLevelName = () => {
         switch (currentView) {
             case ViewLevel.BUNDESLAND:
-                return selectedRegion === "Berlin" || selectedRegion === "Hamburg" ? "Landkreis" : "Landkreis";
+                return selectedRegion === "Berlin" || selectedRegion === "Hamburg" ? "Bezirk" : "Landkreis";
             case ViewLevel.LANDKREIS:
                 return "Bezirk";
             case ViewLevel.BEZIRK:
@@ -702,8 +706,14 @@ const GeoMap = () => {
                         borderRadius: '5px',
                         border: '1px solid #ccc'
                     }}>
-                        {selectedRegion && `${getCurrentViewLevelName()}: ${selectedRegion}`}
-                        {selectedOrtsteil && `${getNextViewLevelName()}: ${selectedOrtsteil}`}
+                        {selectedRegion && (
+                            (currentView === ViewLevel.BEZIRK && (selectedRegion === "Berlin" || selectedRegion === "Hamburg"))
+                            ? `Stadtstaat: ${selectedRegion}`
+                            : (currentView === ViewLevel.ORTSTEIL) 
+                              ? `Bezirk: ${selectedRegion}` 
+                              : `${getCurrentViewLevelName()}: ${selectedRegion}`
+                        )}
+                        {selectedOrtsteil && ` Ortsteil: ${selectedOrtsteil}`}
                     </div>
                     
                     <div style={{ display: 'flex', gap: '10px' }}>
