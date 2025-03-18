@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/berlin-rent-map/static/css/main.7d72cf6d.css",
-    "main.js": "/berlin-rent-map/static/js/main.e806e1fd.js",
+    "main.js": "/berlin-rent-map/static/js/main.6662998a.js",
     "static/js/453.dfe122a4.chunk.js": "/berlin-rent-map/static/js/453.dfe122a4.chunk.js",
     "index.html": "/berlin-rent-map/index.html",
     "main.7d72cf6d.css.map": "/berlin-rent-map/static/css/main.7d72cf6d.css.map",
-    "main.e806e1fd.js.map": "/berlin-rent-map/static/js/main.e806e1fd.js.map",
+    "main.6662998a.js.map": "/berlin-rent-map/static/js/main.6662998a.js.map",
     "453.dfe122a4.chunk.js.map": "/berlin-rent-map/static/js/453.dfe122a4.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.7d72cf6d.css",
-    "static/js/main.e806e1fd.js"
+    "static/js/main.6662998a.js"
   ]
 }
